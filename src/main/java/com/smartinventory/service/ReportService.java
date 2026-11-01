@@ -47,7 +47,7 @@ public class ReportService {
      */
     public ReportData generateInventoryValuationReport(Integer categoryId, String operatorName) {
         try {
-            List<Batch> batches = batchDAO.search(null, null, null, null);
+            List<Batch> batches = batchDAO.search(null, null, null, null, categoryId);
             List<String> headers = Arrays.asList(
                     "Batch #", "Product Name", "SKU", "Category", "Supplier",
                     "In Stock", "Unit", "Cost ($)", "Sell ($)", "Total Value ($)", "Expiry Date", "Status"
@@ -58,11 +58,6 @@ public class ReportService {
             BigDecimal totalValuation = BigDecimal.ZERO;
 
             for (Batch b : batches) {
-                if (categoryId != null && categoryId > 0) {
-                    // Filter by category if specified (note: categoryId check on batch's product)
-                    // In Batch search, categoryId filtering can be handled
-                }
-
                 BigDecimal batchValue = b.getPurchasePrice().multiply(BigDecimal.valueOf(b.getCurrentQuantity()));
                 totalUnits += b.getCurrentQuantity();
                 totalValuation = totalValuation.add(batchValue);
@@ -71,7 +66,7 @@ public class ReportService {
                         b.getBatchNumber(),
                         b.getProductName(),
                         b.getProductSku(),
-                        b.getProductName(), // category context
+                        b.getCategoryName() != null ? b.getCategoryName() : "-",
                         b.getSupplierName(),
                         b.getCurrentQuantity(),
                         b.getProductUnit() != null ? b.getProductUnit() : "pcs",

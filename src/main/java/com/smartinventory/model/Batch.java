@@ -17,6 +17,8 @@ public class Batch {
     private String productName;   // Convenience joined field
     private String productSku;    // Convenience joined field
     private String productUnit;   // Convenience joined field
+    private Integer categoryId;   // Convenience joined field
+    private String categoryName;  // Convenience joined field
     private Integer supplierId;
     private String supplierName;  // Convenience joined field
     private String batchNumber;
@@ -51,7 +53,8 @@ public class Batch {
     }
 
     public Batch(Integer batchId, Integer productId, String productName, String productSku,
-                 String productUnit, Integer supplierId, String supplierName,
+                 String productUnit, Integer categoryId, String categoryName,
+                 Integer supplierId, String supplierName,
                  String batchNumber, BigDecimal purchasePrice, BigDecimal sellingPrice,
                  int initialQuantity, int currentQuantity, LocalDate manufacturingDate,
                  LocalDate expiryDate, BatchStatus status, LocalDate receivedDate,
@@ -61,6 +64,8 @@ public class Batch {
         this.productName = productName;
         this.productSku = productSku;
         this.productUnit = productUnit;
+        this.categoryId = categoryId;
+        this.categoryName = categoryName;
         this.supplierId = supplierId;
         this.supplierName = supplierName;
         this.batchNumber = batchNumber;
@@ -73,6 +78,17 @@ public class Batch {
         this.status = status;
         this.receivedDate = receivedDate;
         this.createdAt = createdAt;
+    }
+
+    public Batch(Integer batchId, Integer productId, String productName, String productSku,
+                 String productUnit, Integer supplierId, String supplierName,
+                 String batchNumber, BigDecimal purchasePrice, BigDecimal sellingPrice,
+                 int initialQuantity, int currentQuantity, LocalDate manufacturingDate,
+                 LocalDate expiryDate, BatchStatus status, LocalDate receivedDate,
+                 Timestamp createdAt) {
+        this(batchId, productId, productName, productSku, productUnit, null, null, supplierId, supplierName,
+             batchNumber, purchasePrice, sellingPrice, initialQuantity, currentQuantity, manufacturingDate,
+             expiryDate, status, receivedDate, createdAt);
     }
 
     public Integer getBatchId() {
@@ -113,6 +129,22 @@ public class Batch {
 
     public void setProductUnit(String productUnit) {
         this.productUnit = productUnit;
+    }
+
+    public Integer getCategoryId() {
+        return categoryId;
+    }
+
+    public void setCategoryId(Integer categoryId) {
+        this.categoryId = categoryId;
+    }
+
+    public String getCategoryName() {
+        return categoryName;
+    }
+
+    public void setCategoryName(String categoryName) {
+        this.categoryName = categoryName;
     }
 
     public Integer getSupplierId() {

@@ -5,6 +5,8 @@ pom.xml.releaseBackup
 pom.xml.versionsBackup
 pom.xml.next
 release.properties
+dependency-reduced-pom.xml
+*.lnk
 
 # IDE & Editor files
 .idea/
@@ -26,3 +28,15 @@ desktop.ini
 src/main/resources/db.properties
 db.properties
 *.log
+
+# Generated application builds and distributions
+dist/
+*.jar
+*.exe
+*.zip
+
+# Generated application builds and distributions
+dist/
+*.jar
+*.exe
+*.zip

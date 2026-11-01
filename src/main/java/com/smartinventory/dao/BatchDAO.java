@@ -22,11 +22,13 @@ public class BatchDAO {
 
     private static final String BASE_SELECT_SQL =
             "SELECT b.batch_id, b.product_id, p.product_name, p.sku AS product_sku, p.unit AS product_unit, " +
+            "p.category_id, c.category_name, " +
             "b.supplier_id, s.supplier_name, b.batch_number, b.purchase_price, b.selling_price, " +
             "b.initial_quantity, b.current_quantity, b.manufacturing_date, b.expiry_date, " +
             "b.status, b.received_date, b.created_at " +
             "FROM product_batches b " +
             "JOIN products p ON b.product_id = p.product_id " +
+            "JOIN categories c ON p.category_id = c.category_id " +
             "JOIN suppliers s ON b.supplier_id = s.supplier_id ";
 
     public Batch create(Batch batch) throws SQLException {
@@ -225,6 +227,10 @@ public class BatchDAO {
     }
 
     public List<Batch> search(String keyword, Integer productId, Integer supplierId, BatchStatus status) throws SQLException {
+        return search(keyword, productId, supplierId, status, null);
+    }
+
+    public List<Batch> search(String keyword, Integer productId, Integer supplierId, BatchStatus status, Integer categoryId) throws SQLException {
         StringBuilder sql = new StringBuilder(BASE_SELECT_SQL).append("WHERE 1=1 ");
         List<Object> params = new ArrayList<>();
 
@@ -239,6 +245,11 @@ public class BatchDAO {
         if (productId != null && productId > 0) {
             sql.append("AND b.product_id = ? ");
             params.add(productId);
+        }
+
+        if (categoryId != null && categoryId > 0) {
+            sql.append("AND p.category_id = ? ");
+            params.add(categoryId);
         }
 
         if (supplierId != null && supplierId > 0) {
@@ -281,6 +292,8 @@ public class BatchDAO {
                 rs.getString("product_name"),
                 rs.getString("product_sku"),
                 rs.getString("product_unit"),
+                rs.getInt("category_id"),
+                rs.getString("category_name"),
                 rs.getInt("supplier_id"),
                 rs.getString("supplier_name"),
                 rs.getString("batch_number"),

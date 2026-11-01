@@ -4,6 +4,7 @@ import com.smartinventory.controller.CategoryController;
 import com.smartinventory.controller.ProductController;
 import com.smartinventory.model.Category;
 import com.smartinventory.model.Product;
+import com.smartinventory.util.UserSession;
 import com.smartinventory.view.components.StatusBadgeRenderer;
 
 import javax.swing.*;
@@ -89,12 +90,15 @@ public class ProductManagementPanel extends JPanel {
             loadProducts();
         });
 
+        boolean canManage = UserSession.getInstance().isManagerOrAdmin();
+
         JButton addButton = new JButton("+ Add Product");
         addButton.putClientProperty("JButton.buttonType", "roundRect");
         addButton.setBackground(new Color(37, 99, 235));
         addButton.setForeground(Color.WHITE);
         addButton.setFont(addButton.getFont().deriveFont(Font.BOLD));
         addButton.addActionListener(e -> onAddProduct());
+        addButton.setVisible(canManage);
 
         actionPanel.add(new JLabel("Category:"));
         actionPanel.add(categoryFilterCombo);
@@ -103,7 +107,9 @@ public class ProductManagementPanel extends JPanel {
         actionPanel.add(searchField);
         actionPanel.add(searchButton);
         actionPanel.add(refreshButton);
-        actionPanel.add(addButton);
+        if (canManage) {
+            actionPanel.add(addButton);
+        }
         topPanel.add(actionPanel, BorderLayout.EAST);
 
         add(topPanel, BorderLayout.NORTH);
@@ -136,12 +142,14 @@ public class ProductManagementPanel extends JPanel {
         // Status Badge Renderer for column 7
         productTable.getColumnModel().getColumn(7).setCellRenderer(new StatusBadgeRenderer());
 
-        // Double-click row to edit
+        // Double-click row to edit (managers/admins only)
         productTable.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 if (e.getClickCount() == 2 && productTable.getSelectedRow() >= 0) {
-                    onEditProduct();
+                    if (UserSession.getInstance().isManagerOrAdmin()) {
+                        onEditProduct();
+                    }
                 }
             }
         });
@@ -166,9 +174,11 @@ public class ProductManagementPanel extends JPanel {
         deleteButton.setForeground(new Color(220, 38, 38));
         deleteButton.addActionListener(e -> onDeleteProduct());
 
-        bottomButtons.add(editButton);
-        bottomButtons.add(toggleButton);
-        bottomButtons.add(deleteButton);
+        if (canManage) {
+            bottomButtons.add(editButton);
+            bottomButtons.add(toggleButton);
+            bottomButtons.add(deleteButton);
+        }
 
         bottomPanel.add(statusLabel, BorderLayout.WEST);
         bottomPanel.add(bottomButtons, BorderLayout.EAST);
@@ -265,6 +275,10 @@ public class ProductManagementPanel extends JPanel {
     }
 
     private void onAddProduct() {
+        if (!UserSession.getInstance().isManagerOrAdmin()) {
+            JOptionPane.showMessageDialog(this, "Access denied: Administrator or Manager role required.", "Unauthorized", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
         Window parentWindow = SwingUtilities.getWindowAncestor(this);
         ProductFormDialog dialog = new ProductFormDialog(parentWindow, productController, categoryController, null);
         dialog.setVisible(true);
@@ -275,6 +289,10 @@ public class ProductManagementPanel extends JPanel {
     }
 
     private void onEditProduct() {
+        if (!UserSession.getInstance().isManagerOrAdmin()) {
+            JOptionPane.showMessageDialog(this, "Access denied: Administrator or Manager role required.", "Unauthorized", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
         int selectedRow = productTable.getSelectedRow();
         if (selectedRow < 0) {
             JOptionPane.showMessageDialog(this, "Please select a product to edit.", "Selection Required", JOptionPane.INFORMATION_MESSAGE);
@@ -292,6 +310,10 @@ public class ProductManagementPanel extends JPanel {
     }
 
     private void onToggleStatus() {
+        if (!UserSession.getInstance().isManagerOrAdmin()) {
+            JOptionPane.showMessageDialog(this, "Access denied: Administrator or Manager role required.", "Unauthorized", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
         int selectedRow = productTable.getSelectedRow();
         if (selectedRow < 0) {
             JOptionPane.showMessageDialog(this, "Please select a product to toggle status.", "Selection Required", JOptionPane.INFORMATION_MESSAGE);
@@ -319,6 +341,10 @@ public class ProductManagementPanel extends JPanel {
     }
 
     private void onDeleteProduct() {
+        if (!UserSession.getInstance().isManagerOrAdmin()) {
+            JOptionPane.showMessageDialog(this, "Access denied: Administrator or Manager role required.", "Unauthorized", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
         int selectedRow = productTable.getSelectedRow();
         if (selectedRow < 0) {
             JOptionPane.showMessageDialog(this, "Please select a product to delete.", "Selection Required", JOptionPane.INFORMATION_MESSAGE);

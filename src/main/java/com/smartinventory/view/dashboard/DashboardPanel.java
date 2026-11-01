@@ -197,15 +197,20 @@ public class DashboardPanel extends JPanel {
         quickLabel.setForeground(new Color(71, 85, 105));
         quickActions.add(quickLabel);
 
-        JButton stockInBtn = createQuickButton("Receive Stock-In", new Color(16, 185, 129), () -> navigate("inventory"));
-        JButton stockOutBtn = createQuickButton("Dispense Stock-Out (FEFO)", new Color(37, 99, 235), () -> navigate("inventory"));
-        JButton alertsBtn = createQuickButton("Open Alert Center", new Color(239, 68, 68), () -> navigate("alerts"));
-        JButton reportsBtn = createQuickButton("Export Reports", new Color(100, 116, 139), () -> navigate("reports"));
+        boolean isManagerOrAdmin = UserSession.getInstance().isManagerOrAdmin();
 
-        quickActions.add(stockInBtn);
-        quickActions.add(stockOutBtn);
+        if (isManagerOrAdmin) {
+            JButton stockInBtn = createQuickButton("Receive Stock-In", new Color(16, 185, 129), () -> navigate("inventory"));
+            quickActions.add(stockInBtn);
+            JButton stockOutBtn = createQuickButton("Dispense Stock-Out (FEFO)", new Color(37, 99, 235), () -> navigate("inventory"));
+            quickActions.add(stockOutBtn);
+        }
+        JButton alertsBtn = createQuickButton("Open Alert Center", new Color(239, 68, 68), () -> navigate("alerts"));
         quickActions.add(alertsBtn);
-        quickActions.add(reportsBtn);
+        if (isManagerOrAdmin) {
+            JButton reportsBtn = createQuickButton("Export Reports", new Color(100, 116, 139), () -> navigate("reports"));
+            quickActions.add(reportsBtn);
+        }
 
         bottomPanel.add(quickActions, BorderLayout.WEST);
         add(bottomPanel, BorderLayout.SOUTH);

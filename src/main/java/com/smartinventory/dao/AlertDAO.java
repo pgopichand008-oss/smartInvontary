@@ -121,7 +121,7 @@ public class AlertDAO {
 
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
-                    long days = rs.getLong("days_remaining");
+                    long days = rs.getInt("days_remaining");
                     ExpirySeverity severity;
                     if (days <= 7) {
                         severity = ExpirySeverity.EXPIRING_7_DAYS;
@@ -239,7 +239,7 @@ public class AlertDAO {
                 rs.getInt("current_quantity"),
                 rs.getString("unit"),
                 expDate != null ? expDate.toLocalDate() : LocalDate.now(),
-                rs.getLong("days_remaining"),
+                (long) rs.getInt("days_remaining"),
                 severity
         );
     }

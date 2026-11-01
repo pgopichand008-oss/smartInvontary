@@ -120,6 +120,19 @@ public class MainFrame extends JFrame {
     }
 
     public void navigateTo(String navKey) {
+        if (!UserSession.getInstance().isManagerOrAdmin()) {
+            if (SidebarPanel.NAV_CATEGORIES.equals(navKey) ||
+                SidebarPanel.NAV_SUPPLIERS.equals(navKey) ||
+                SidebarPanel.NAV_INVENTORY.equals(navKey) ||
+                SidebarPanel.NAV_REPORTS.equals(navKey)) {
+                JOptionPane.showMessageDialog(this,
+                        "Access Denied: You do not have permission to access this module.",
+                        "Authorization Required",
+                        JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+        }
+
         cardLayout.show(contentPanel, navKey);
         if (sidebarPanel != null) {
             sidebarPanel.setActiveNavKey(navKey);

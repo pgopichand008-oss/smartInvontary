@@ -7,6 +7,8 @@ import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -26,6 +28,10 @@ public final class DatabaseConnection {
     private static final Logger logger = LoggerFactory.getLogger(DatabaseConnection.class);
     private static volatile HikariDataSource dataSource;
     private static final Object LOCK = new Object();
+    private static volatile boolean shutdownHookRegistered = false;
+    private static volatile String configSourceDescription = "Not loaded";
+    private static volatile String lastConnectionErrorMessage = null;
+    private static volatile boolean externalConfigLoaded = false;
 
     // Prevent direct instantiation (Utility / Singleton pattern)
     private DatabaseConnection() {
@@ -89,6 +95,19 @@ public final class DatabaseConnection {
         logger.info("Initializing HikariCP pool for database: {}", extractDbName(url));
         dataSource = new HikariDataSource(config);
         logger.info("HikariCP pool successfully created.");
+
+        if (!shutdownHookRegistered) {
+            synchronized (LOCK) {
+                if (!shutdownHookRegistered) {
+                    try {
+                        Runtime.getRuntime().addShutdownHook(new Thread(DatabaseConnection::closePool, "HikariPool-ShutdownHook"));
+                        shutdownHookRegistered = true;
+                    } catch (IllegalStateException ignored) {
+                        // JVM already shutting down
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -107,6 +126,7 @@ public final class DatabaseConnection {
      * @return true if connection succeeds, false otherwise
      */
     public static boolean testConnection() {
+        lastConnectionErrorMessage = null;
         try (Connection conn = getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery("SELECT 1 AS connection_test")) {
@@ -114,7 +134,8 @@ public final class DatabaseConnection {
                 logger.info("Database connectivity test passed. SELECT 1 returned: {}", rs.getInt("connection_test"));
                 return true;
             }
-        } catch (SQLException e) {
+        } catch (Exception e) {
+            lastConnectionErrorMessage = e.getMessage();
             logger.error("Database connectivity test failed: {}", e.getMessage(), e);
         }
         return false;
@@ -174,34 +195,144 @@ public final class DatabaseConnection {
     }
 
     /**
-     * Loads database properties from db.properties in the classpath,
-     * falling back to db.properties.example if not present.
+     * Loads database configuration from external properties file, system property,
+     * application directory, or classpath fallback.
      */
     private static Properties loadDatabaseProperties() {
         Properties properties = new Properties();
 
-        // Attempt 1: Load db.properties
+        // 1. Explicit system property -Ddb.config=/path/to/db.properties
+        String customPath = System.getProperty("db.config");
+        if (customPath != null && !customPath.trim().isEmpty()) {
+            File customFile = new File(customPath.trim());
+            if (customFile.isFile()) {
+                try (InputStream is = new FileInputStream(customFile)) {
+                    properties.load(is);
+                    configSourceDescription = "System property (-Ddb.config): " + customFile.getAbsolutePath();
+                    externalConfigLoaded = true;
+                    logger.info("Loaded external database configuration from: {}", customFile.getAbsolutePath());
+                    return properties;
+                } catch (IOException e) {
+                    logger.warn("Could not read custom configuration file '{}': {}", customFile.getAbsolutePath(), e.getMessage());
+                }
+            }
+        }
+
+        // 2. Working directory db.properties (./db.properties)
+        File workingDirFile = new File("db.properties");
+        if (workingDirFile.isFile()) {
+            try (InputStream is = new FileInputStream(workingDirFile)) {
+                properties.load(is);
+                configSourceDescription = "External file in working directory: " + workingDirFile.getAbsolutePath();
+                externalConfigLoaded = true;
+                logger.info("Loaded external database configuration from: {}", workingDirFile.getAbsolutePath());
+                return properties;
+            } catch (IOException e) {
+                logger.warn("Could not read working directory 'db.properties': {}", e.getMessage());
+            }
+        }
+
+        // 3. Application directory (where the runnable JAR resides)
+        File appDir = getApplicationDirectory();
+        File appDirFile = new File(appDir, "db.properties");
+        if (appDirFile.isFile() && !appDirFile.equals(workingDirFile)) {
+            try (InputStream is = new FileInputStream(appDirFile)) {
+                properties.load(is);
+                configSourceDescription = "External file in application directory: " + appDirFile.getAbsolutePath();
+                externalConfigLoaded = true;
+                logger.info("Loaded external database configuration from: {}", appDirFile.getAbsolutePath());
+                return properties;
+            } catch (IOException e) {
+                logger.warn("Could not read app directory 'db.properties': {}", e.getMessage());
+            }
+        }
+
+        // 3b. Root installation directory if packaged inside an 'app' subdirectory (e.g., jpackage)
+        if (appDir.getName().equalsIgnoreCase("app") && appDir.getParentFile() != null) {
+            File rootInstallFile = new File(appDir.getParentFile(), "db.properties");
+            if (rootInstallFile.isFile() && !rootInstallFile.equals(workingDirFile) && !rootInstallFile.equals(appDirFile)) {
+                try (InputStream is = new FileInputStream(rootInstallFile)) {
+                    properties.load(is);
+                    configSourceDescription = "External file in installation directory: " + rootInstallFile.getAbsolutePath();
+                    externalConfigLoaded = true;
+                    logger.info("Loaded external database configuration from: {}", rootInstallFile.getAbsolutePath());
+                    return properties;
+                } catch (IOException e) {
+                    logger.warn("Could not read installation directory 'db.properties': {}", e.getMessage());
+                }
+            }
+        }
+
+        // 4. config/db.properties in working directory or application directory
+        File configSubdirFile = new File("config/db.properties");
+        if (configSubdirFile.isFile()) {
+            try (InputStream is = new FileInputStream(configSubdirFile)) {
+                properties.load(is);
+                configSourceDescription = "External file: " + configSubdirFile.getAbsolutePath();
+                externalConfigLoaded = true;
+                logger.info("Loaded external database configuration from: {}", configSubdirFile.getAbsolutePath());
+                return properties;
+            } catch (IOException e) {
+                logger.warn("Could not read 'config/db.properties': {}", e.getMessage());
+            }
+        }
+
+        // 5. Classpath db.properties (development & test suite execution)
         try (InputStream is = DatabaseConnection.class.getClassLoader().getResourceAsStream("db.properties")) {
             if (is != null) {
                 properties.load(is);
-                logger.info("Loaded database configuration from 'db.properties'.");
+                configSourceDescription = "Classpath resource 'db.properties'";
+                externalConfigLoaded = false;
+                logger.info("Loaded database configuration from classpath 'db.properties'.");
                 return properties;
             }
         } catch (IOException e) {
-            logger.warn("Could not read 'db.properties': {}", e.getMessage());
+            logger.warn("Could not read classpath 'db.properties': {}", e.getMessage());
         }
 
-        // Attempt 2: Fallback to db.properties.example
+        // 6. Classpath fallback to db.properties.example template
         try (InputStream is = DatabaseConnection.class.getClassLoader().getResourceAsStream("db.properties.example")) {
             if (is != null) {
                 properties.load(is);
-                logger.warn("Loaded fallback configuration from 'db.properties.example'. Please create 'db.properties' with actual credentials.");
+                configSourceDescription = "Classpath fallback 'db.properties.example'";
+                externalConfigLoaded = false;
+                logger.warn("Loaded fallback configuration from 'db.properties.example'. Please create an external 'db.properties' with actual credentials.");
+                return properties;
             }
         } catch (IOException e) {
             logger.warn("Could not read 'db.properties.example': {}", e.getMessage());
         }
 
+        configSourceDescription = "Internal defaults (no external db.properties found)";
         return properties;
+    }
+
+    /**
+     * Resolves the directory where the application code / runnable JAR resides.
+     */
+    public static File getApplicationDirectory() {
+        try {
+            File codeSource = new File(DatabaseConnection.class.getProtectionDomain()
+                    .getCodeSource().getLocation().toURI());
+            if (codeSource.isFile()) {
+                return codeSource.getParentFile();
+            }
+            return codeSource;
+        } catch (Exception e) {
+            return new File(".");
+        }
+    }
+
+    public static String getConfigSourceDescription() {
+        return configSourceDescription;
+    }
+
+    public static String getLastConnectionErrorMessage() {
+        return lastConnectionErrorMessage;
+    }
+
+    public static boolean isExternalConfigLoaded() {
+        return externalConfigLoaded;
     }
 
     private static String getPropertyOrEnv(Properties props, String propKey, String envKey, String defaultValue) {

@@ -78,7 +78,7 @@ public class InventoryServiceTest {
         Supplier supplier = supplierService.createSupplier(
                 "Inv Supplier " + suffix,
                 "Bob Manager",
-                "+1-800-" + (suffix % 10000),
+                "+1-800-" + (System.nanoTime() % 9000000 + 1000000),
                 "inv" + suffix + "@supplier.com",
                 "456 Supply Way"
         );

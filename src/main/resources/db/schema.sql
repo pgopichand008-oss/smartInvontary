@@ -144,9 +144,12 @@ CREATE TABLE IF NOT EXISTS stock_transactions (
 -- Initial Default Seed Data
 -- ----------------------------------------------------------------------------
 
--- Default Administrator account (password: admin123, BCrypt hash: $2a$12$e8r0.5d9yK9kUjRk5P8R1.k98sQxK6QzX/qZ5cO7f2.1A3W0j0B6a)
+-- Default Seed Accounts (Default Password for all: admin123)
 INSERT IGNORE INTO users (user_id, username, password_hash, full_name, email, role, is_active)
-VALUES (1, 'admin', '$2a$12$e8r0.5d9yK9kUjRk5P8R1.k98sQxK6QzX/qZ5cO7f2.1A3W0j0B6a', 'System Administrator', 'admin@smartinventory.local', 'ADMIN', TRUE);
+VALUES 
+(1, 'admin', '$2a$12$nVLeZ29ivyz7V8BGfS410.vpe2rPuP1zebYTyUAyONIyez2yH6n.C', 'System Administrator', 'admin@smartinventory.local', 'ADMIN', TRUE),
+(2, 'manager', '$2a$12$nVLeZ29ivyz7V8BGfS410.vpe2rPuP1zebYTyUAyONIyez2yH6n.C', 'Store Operations Manager', 'manager@smartinventory.local', 'MANAGER', TRUE),
+(3, 'cashier', '$2a$12$nVLeZ29ivyz7V8BGfS410.vpe2rPuP1zebYTyUAyONIyez2yH6n.C', 'Front Desk Cashier', 'cashier@smartinventory.local', 'CASHIER', TRUE);
 
 -- Initial Categories
 INSERT IGNORE INTO categories (category_id, category_name, description) VALUES

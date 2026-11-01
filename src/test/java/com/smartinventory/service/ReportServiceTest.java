@@ -157,6 +157,19 @@ public class ReportServiceTest {
         assertTrue(text.contains("Widget A,SKU-001,100"));
     }
 
+    @Test
+    @Order(8)
+    @DisplayName("Report Service: Generate Inventory Valuation Report with Category Filter")
+    public void testGenerateInventoryValuationReportWithCategoryFilter() {
+        ReportData report = reportService.generateInventoryValuationReport(1, "TestManager");
+        assertNotNull(report);
+        assertEquals(ReportType.INVENTORY_VALUATION, report.getReportType());
+        assertNotNull(report.getRows());
+        for (List<Object> row : report.getRows()) {
+            assertNotNull(row.get(2), "Category must not be null in row");
+        }
+    }
+
     private ReportData createMockReport(String title) {
         List<String> headers = Arrays.asList("Item Name", "SKU", "In Stock", "Price");
         List<List<Object>> rows = Arrays.asList(
