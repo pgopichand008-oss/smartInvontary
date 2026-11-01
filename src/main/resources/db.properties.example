@@ -1,0 +1,19 @@
+# ==============================================================================
+# Smart Inventory & Expiry Management System - Database Configuration Template
+# ==============================================================================
+# Instructions:
+# 1. Copy this file to 'src/main/resources/db.properties'
+# 2. Update the db.user and db.password properties to match your local MySQL Server
+# 3. 'db.properties' is git-ignored to prevent credential exposure
+# ==============================================================================
+
+db.url=jdbc:mysql://localhost:3306/smart_inventory?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&createDatabaseIfNotExist=true
+db.user=root
+db.password=YOUR_MYSQL_PASSWORD_HERE
+
+# HikariCP Connection Pool Settings
+db.pool.maximumPoolSize=10
+db.pool.minimumIdle=2
+db.pool.idleTimeout=30000
+db.pool.connectionTimeout=20000
+db.pool.maxLifetime=1800000

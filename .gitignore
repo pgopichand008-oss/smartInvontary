@@ -1,0 +1,28 @@
+# Maven Build
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+
+# IDE & Editor files
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# OS Generated
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Security & Local Database Configuration
+# Do NOT commit actual database passwords or credentials
+src/main/resources/db.properties
+db.properties
+*.log
